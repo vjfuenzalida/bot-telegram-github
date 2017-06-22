@@ -18,6 +18,7 @@ class Telegram:
     def setWebhook(self):
         data = {"url": self.url + self.hook}
         requests.post(url=self.path + "/setWebhook", data=data)
+        print(data)
 
 
 class Update:
@@ -63,11 +64,11 @@ app = Flask(__name__)
 
 token = os.environ["TELEGRAM_TOKEN"]
 url = os.environ["HEROKU_URL"]
-hook = "/botsito"
+hook = "botsito"
 
 bot = Telegram(token, url, hook)
 
-@app.route(bot.hook, methods=['POST'])
+@app.route("/" + bot.hook, methods=['POST'])
 def webhook_handler():
     if request.method == "POST":
         update = Update(request.get_json(force=True))
@@ -85,16 +86,6 @@ def webhook_handler():
         else:
             bot.sendMessage(update.chat_id, "jajaja")
     return "200"
-
-
-@app.route('/set_webhook', methods=['GET', 'POST'])
-def set_webhook():
-    s = bot.setWebhook('{}/{}'.format(url, hook))
-    if s:
-        return "webhook setup ok"
-    else:
-        return "webhook setup failed"
-
 
 @app.route('/')
 def index():
