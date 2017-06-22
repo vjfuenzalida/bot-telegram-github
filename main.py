@@ -3,10 +3,11 @@ from flask import Flask, request
 import requests
 
 class Telegram:
-    def __init__(self, token, url):
+    def __init__(self, token, url, hook):
         self.token = token
         self.path = "https://api.telegram.org/bot{}".format(token)
         self.url = url
+        self.hook = hook
         self.setWebhook()
 
     def sendMessage(self, chat_id, text):
@@ -15,7 +16,8 @@ class Telegram:
         print("sent message to {} !".format(chat_id))
 
     def setWebhook(self):
-        requests.post(url=self.path + "/setWebhook", data={"url": self.url})
+        data = {"url": self.url + self.hook}
+        requests.post(url=self.path + "/setWebhook", data=data)
 
 
 class Update:
@@ -61,10 +63,11 @@ app = Flask(__name__)
 
 token = os.environ["TELEGRAM_TOKEN"]
 url = os.environ["HEROKU_URL"]
+hook = "/botsito"
 
-bot = Telegram(token, url)
+bot = Telegram(token, url, hook)
 
-@app.route("/botsito", methods=['POST'])
+@app.route(bot.hook, methods=['POST'])
 def webhook_handler():
     if request.method == "POST":
         update = Update(request.get_json(force=True))
