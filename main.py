@@ -58,9 +58,7 @@ class Command:
 
 app = Flask(__name__)
 
-# token = "405024384:AAHJFsv-52_hNe5-MSShArb2nLQQIZ0_bzU"
 token = ENV["TELEGRAM_TOKEN"]
-#url = "http://localhost:5000"
 url = ENV["HEROKU_URL"]
 
 bot = Telegram(token, url)

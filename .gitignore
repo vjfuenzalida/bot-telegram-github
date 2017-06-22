@@ -1,4 +1,5 @@
 flaskenv/
+.env
 
 *.py[co]
 *.DS_*
