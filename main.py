@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request
 import requests
 
@@ -58,8 +59,8 @@ class Command:
 
 app = Flask(__name__)
 
-token = ENV["TELEGRAM_TOKEN"]
-url = ENV["HEROKU_URL"]
+token = os.environ["TELEGRAM_TOKEN"]
+url = os.environ["HEROKU_URL"]
 
 bot = Telegram(token, url)
 

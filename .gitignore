@@ -1,5 +1,6 @@
 flaskenv/
 .env
+config.yml
 
 *.py[co]
 *.DS_*
