@@ -2,7 +2,7 @@
 
 Open, comment and close issues from a specific GitHub repository by passing simple commands to a Telegram Bot.
 
-## 1. Requierements
+## 1. Requirements
   The application is based on Python's Flask framework, interacting with both Telegram and GitHub APIs. Here is the minimum software to try it:
 
 #### 1.1. Python 3.5.1

@@ -1,3 +1,4 @@
+import re
 import os
 from flask import Flask, request
 import requests
@@ -84,7 +85,11 @@ def webhook_handler():
         command = update.get_command()
         if command:
             issue_url = git.issue_url(command.issue_id)
-            issue = Issue(git.get(issue_url).json(), git)
+            api_response = git.get(issue_url)
+            if api_response.status_code == 200:
+                issue = Issue(api_response.json(), git)
+            else:
+                return str(api_response.status_code)
             # bot.sendMessage(update.chat_id, command)
             if command.name == "/get":
                 bot.sendMessage(update.chat_id, issue)
@@ -104,8 +109,21 @@ def webhook_handler():
             elif command.name == "/close":
                 issue.close()
                 bot.sendMessage(update.chat_id, "issue closed")
+            elif command.name == "/open":
+                issue.open()
+                bot.sendMessage(update.chat_id, "issue reopened")
+            elif command.name == "/comments":
+                if re.search(r'^[0-9]+$', command.params):
+                    comments = issue.get_comments(command.params)
+                else:
+                    comments = issue.get_comments()
+                comments = list(map(lambda x: "\t{}: '{}'".format(x[0],x[1].strip()), comments))
+                output = issue.__repr__()
+                output += "\n\nList of comments: \n"
+                output += "\n".join(comments)
+                bot.sendMessage(update.chat_id, output)
         else:
-            bot.sendMessage(update.chat_id, "jajaja")
+            bot.sendMessage(update.chat_id, "You are very funny :) !")
     return "200"
 
 @app.route('/')

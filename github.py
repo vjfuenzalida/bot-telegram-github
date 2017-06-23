@@ -55,6 +55,17 @@ class Issue:
         response = self.git.post(url=self.url+"/comments", json=data)
         # print("Issue {} commented with: {}".format(self.number, body))
 
+    def get_comments(self, number=0):
+        # GET /repos/:owner/:repo/issues/:number/comments
+        url = self.url + "/comments"
+        response = self.git.get(url=url).json()
+        comments = list(map(lambda x: (x["user"]["login"], x["body"]), response))
+        number = min(int(number), len(comments))
+        if number > 0:
+            return comments[(number*-1-1):]
+        else:
+            return comments
+
     def __repr__(self):
         text = self.title.upper()
         text += " (by: " + self.author + ")\n"
