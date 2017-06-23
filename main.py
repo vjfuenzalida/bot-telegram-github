@@ -72,8 +72,8 @@ hook = "botsito"
 bot = Telegram(token, url, hook)
 
 address = "https://api.github.com"
-owner = "vjfuenzalida"
-repo = "test-repo"
+owner = os.environ["USERNAME"]
+repo = os.environ["REPOSITORY"]
 
 git = Github(address, owner, repo)
 
