@@ -1,6 +1,7 @@
 import os
 from flask import Flask, request
 import requests
+from github import Issue, Github, create_label
 
 class Telegram:
     def __init__(self, token, url, hook):
@@ -13,12 +14,12 @@ class Telegram:
     def sendMessage(self, chat_id, text):
         data = {"chat_id": chat_id, "text": text}
         requests.post(url=self.path + "/sendMessage", data=data)
-        print("sent message to {} !".format(chat_id))
+        # print("sent message to {} !".format(chat_id))
 
     def setWebhook(self):
         data = {"url": self.url + self.hook}
         requests.post(url=self.path + "/setWebhook", data=data)
-        print(data)
+        # print(data)
 
 
 class Update:
@@ -41,6 +42,8 @@ class Update:
                 params = " ".join(parts[2:])
             except:
                 pass
+        else:
+            return False
         return Command(name, issue_id, params)
 
 class Command:
@@ -68,21 +71,39 @@ hook = "botsito"
 
 bot = Telegram(token, url, hook)
 
+address = "https://api.github.com"
+owner = "vjfuenzalida"
+repo = "test-repo"
+
+git = Github(address, owner, repo)
+
 @app.route("/" + bot.hook, methods=['POST'])
 def webhook_handler():
     if request.method == "POST":
         update = Update(request.get_json(force=True))
         command = update.get_command()
         if command:
-            bot.sendMessage(update.chat_id, command)
+            issue_url = git.issue_url(command.issue_id)
+            issue = Issue(git.get(issue_url).json(), git)
+            # bot.sendMessage(update.chat_id, command)
             if command.name == "/get":
-                pass
+                bot.sendMessage(update.chat_id, issue)
             elif command.name == "/post":
-                pass
+                issue.post_answer(command.params)
+                bot.sendMessage(update.chat_id, "comment posted")
             elif command.name == "/label":
-                pass
+                items = command.params.split(" ")
+                if len(items) > 1:
+                    label = create_label({"name": " ".join(items[:-1]),"color": items[-1]})
+                elif len(items) == 1:
+                    label = create_label({"name": items[0]})
+                else:
+                    return "404"
+                issue.add_label(label)
+                bot.sendMessage(update.chat_id, "label added")
             elif command.name == "/close":
-                pass
+                issue.close()
+                bot.sendMessage(update.chat_id, "issue closed")
         else:
             bot.sendMessage(update.chat_id, "jajaja")
     return "200"
