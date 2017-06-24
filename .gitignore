@@ -1,6 +1,7 @@
 flaskenv/
 .env
 config.yml
+sqlite.py
 
 *.py[co]
 *.DS_*

@@ -116,6 +116,77 @@ class Issue:
         text += "description: " + self.body
         return text
 
+class Telegram:
+    def __init__(self, token, url, hook):
+        self.token = token
+        self.path = "https://api.telegram.org/bot{}".format(token)
+        self.url = url
+        self.hook = hook
+        self.setWebhook()
+        self.commands = {"/get": "#issue",
+                            "/post": "#issue *comment",
+                            "/label": "#issue *name *color(hex)",
+                            "/close": "#issue",
+                            "/open": "#issue",
+                            "/comments": "#issue #quantity"}
+
+    def sendMessage(self, chat_id, text):
+        data = {"chat_id": chat_id, "text": text}
+        requests.post(url=self.path + "/sendMessage", data=data)
+        # print("sent message to {} !".format(chat_id))
+
+    def setWebhook(self):
+        data = {"url": self.url + self.hook}
+        requests.post(url=self.path + "/setWebhook", data=data)
+        # print(data)
+
+class Notification:
+    def __init__(self, data, git):
+        self.issue = Issue(data['issue'], git)
+        self.repository = data['repository']
+        self.action = data["action"]
+        self.sender = data["sender"]
+
+class Update:
+    def __init__(self, update):
+        self.chat_id = update['message']['chat']['id']
+        self.text = update['message']['text']
+
+    def get_command(self):
+        if len(self.text) == 0:
+            return False
+        parts = self.text.split(" ")
+        name = parts[0]
+        issue_id = False
+        params = False
+        if name[0] != "/":
+            return False
+        if len(parts) > 1:
+            issue_id = parts[1]
+            try:
+                params = " ".join(parts[2:])
+            except:
+                pass
+        else:
+            return False
+        return Command(name, issue_id, params)
+
+class Command:
+    def __init__(self, name, issue_id, params):
+        self.name = name
+        self.issue_id = issue_id
+        self.params = params
+
+    def __repr__(self):
+        text = []
+        if self.name:
+            text.append(self.name)
+        if self.issue_id:
+            text.append(self.issue_id)
+        if self.params:
+            text.append(self.params)
+        return " ".join(text)
+
 def create_label(params):
     result = {}
     attribs = list(params.keys())

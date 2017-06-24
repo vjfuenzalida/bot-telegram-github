@@ -1,101 +1,60 @@
-import re
+from flask import Flask, render_template, request
+from flask.ext.sqlalchemy import SQLAlchemy
+from flask.ext.heroku import Heroku
+from classes import *
 import os
+import re
 import json
-from flask import Flask, request
 import requests
-from github import Issue, Github, create_label
-
-class Telegram:
-    def __init__(self, token, url, hook):
-        self.token = token
-        self.path = "https://api.telegram.org/bot{}".format(token)
-        self.url = url
-        self.hook = hook
-        self.setWebhook()
-        self.commands = {"/get": "#issue",
-                            "/post": "#issue *comment",
-                            "/label": "#issue *name *color(hex)",
-                            "/close": "#issue",
-                            "/open": "#issue",
-                            "/comments": "#issue #quantity"}
-
-    def sendMessage(self, chat_id, text):
-        data = {"chat_id": chat_id, "text": text}
-        requests.post(url=self.path + "/sendMessage", data=data)
-        # print("sent message to {} !".format(chat_id))
-
-    def setWebhook(self):
-        data = {"url": self.url + self.hook}
-        requests.post(url=self.path + "/setWebhook", data=data)
-        # print(data)
-
-class Notification:
-    def __init__(self, data, git):
-        self.issue = Issue(data['issue'], git)
-        self.repository = data['repository']
-        self.action = data["action"]
-        self.sender = data["sender"]
-
-class Update:
-    def __init__(self, update):
-        self.chat_id = update['message']['chat']['id']
-        self.text = update['message']['text']
-
-    def get_command(self):
-        if len(self.text) == 0:
-            return False
-        parts = self.text.split(" ")
-        name = parts[0]
-        issue_id = False
-        params = False
-        if name[0] != "/":
-            return False
-        if len(parts) > 1:
-            issue_id = parts[1]
-            try:
-                params = " ".join(parts[2:])
-            except:
-                pass
-        else:
-            return False
-        return Command(name, issue_id, params)
-
-class Command:
-    def __init__(self, name, issue_id, params):
-        self.name = name
-        self.issue_id = issue_id
-        self.params = params
-
-    def __repr__(self):
-        text = []
-        if self.name:
-            text.append(self.name)
-        if self.issue_id:
-            text.append(self.issue_id)
-        if self.params:
-            text.append(self.params)
-        return " ".join(text)
-
+import sqlite3
 
 app = Flask(__name__)
 
+################
+## COMPONENTS ##
+################
+
+## TELEGRAM
 token = os.environ["TELEGRAM_TOKEN"]
 url = os.environ["HEROKU_URL"]
 hook_telegram = "bot_hook"
-
 bot = Telegram(token, url, hook_telegram)
 
+## GITHUB
 address = "https://api.github.com"
 owner = os.environ["USERNAME"]
 repo = os.environ["REPOSITORY"]
 hook_git = "new_issue"
-
 git = Github(address, url, owner, repo, hook_git)
+
+## DATABASE
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///chats'
+heroku = Heroku(app)
+db = SQLAlchemy(app)
+
+# Create our database model
+class Chat(db.Model):
+    __tablename__ = "chats"
+    id = db.Column(db.Integer, primary_key=True)
+    chat_id = db.Column(db.Integer, unique=True)
+
+    def __init__(self, chat_id):
+        self.chat_id = chat_id
+
+    def __repr__(self):
+        return '<Chat ID %r>' % str(self.chat_id)
+
 
 @app.route("/" + bot.hook, methods=['POST'])
 def webhook_handler():
     if request.method == "POST":
         update = Update(request.get_json(force=True))
+        chat_id = int(update.chat_id)
+        if not db.session.query(Chat).filter(Chat.chat_id == chat_id).count():
+            reg = Chat(chat_id)
+            db.session.add(reg)
+            db.session.commit()
+            print("id {} saved".format(chat_id))
         command = update.get_command()
         if command:
             issue_url = git.issue_url(command.issue_id)
@@ -145,8 +104,9 @@ def webhook_handler():
 @app.route("/" + git.hook, methods=['POST'])
 def git_webhook_handler():
     if request.method == "POST":
-        print(json.dumps(request.get_json(force=True), indent=2))
-        notification = Notification(request.get_json(force=True), git)
+        data = request.get_json(force=True)
+        print(json.dumps(data, indent=2))
+        notification = Notification(data, git)
         if notification.action == "opened":
             "IT WORKS!!!!"
             bot.sendMessage(update.chat_id, "New issue '{}' created.".format(notification.issue))
@@ -154,4 +114,4 @@ def git_webhook_handler():
 
 @app.route('/')
 def index():
-    return 'By Vicente Fuenzalida'
+    return render_template('index.html')
