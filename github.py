@@ -13,14 +13,19 @@ class Github:
         self.session = requests.Session()
         self.session.auth = (os.environ["USERNAME"], os.environ["PASSWORD"])
         self.issues = []
+        self.webhook_url = self.address + "/repos/{}/{}/hooks".format(self.owner, self.repo)
         self.labels_url = self.address + "/repos/{}/{}/labels".format(self.owner, self.repo)
         self.setWebhook()
 
     def setWebhook(self):
-        webhook_url = self.address + "/repos/{}/{}/hooks".format(self.owner, self.repo)
+        # Delete existing hooks
+        hooks = list(map(lambda x: str(x["id"]), self.session.get(url=self.webhook_url).json()))
+        for h in hooks:
+            x = self.session.delete(url=self.webhook_url + "/" + h)
+        # Set new hook
         config = {"url": self.url + self.hook, "content_type": "json"}
-        data = {"name": "web", "events": ["issues", "issue_comment"], "config": config}
-        self.session.post(url=webhook_url, data=data)
+        data = {"name": "web", "events": ["issues"], "config": config}
+        x = self.session.post(url=self.webhook_url, json=data)
 
     def issue_url(self,number):
         return self.address + "/repos/{}/{}/issues/{}".format(self.owner, self.repo, number)

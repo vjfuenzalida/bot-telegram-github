@@ -12,6 +12,12 @@ class Telegram:
         self.url = url
         self.hook = hook
         self.setWebhook()
+        self.commands = {"/get": "#issue",
+                            "/post": "#issue *comment",
+                            "/label": "#issue *name *color(hex)",
+                            "/close": "#issue",
+                            "/open": "#issue",
+                            "/comments": "#issue #quantity"}
 
     def sendMessage(self, chat_id, text):
         data = {"chat_id": chat_id, "text": text}
@@ -23,6 +29,12 @@ class Telegram:
         requests.post(url=self.path + "/setWebhook", data=data)
         # print(data)
 
+class Notification:
+    def __init__(self, data):
+        self.issue = Issue(data['issue'])
+        self.repository = data['repository']
+        self.action = data["action"]
+        self.sender = data["sender"]
 
 class Update:
     def __init__(self, update):
@@ -69,14 +81,14 @@ app = Flask(__name__)
 
 token = os.environ["TELEGRAM_TOKEN"]
 url = os.environ["HEROKU_URL"]
-hook_telegram = "botsito"
+hook_telegram = "bot_hook"
 
 bot = Telegram(token, url, hook_telegram)
 
 address = "https://api.github.com"
 owner = os.environ["USERNAME"]
 repo = os.environ["REPOSITORY"]
-hook_git = "gitsito"
+hook_git = "new_issue"
 
 git = Github(address, url, owner, repo, hook_git)
 
@@ -125,15 +137,21 @@ def webhook_handler():
                 output += "\n".join(comments)
                 bot.sendMessage(update.chat_id, output)
         else:
-            bot.sendMessage(update.chat_id, "You are very funny :) !")
+            comms = "Try these commands: \n\n"
+            comms += "\n".join(list(map(lambda x, y: "{} {}".format(x,y), bot.commands.items())))
+            bot.sendMessage(update.chat_id, comms)
     return "200"
 
 @app.route("/" + git.hook, methods=['POST'])
 def git_webhook_handler():
     if request.method == "POST":
         print(json.dumps(request.get_json(force=True), indent=2))
+        notification = Notification(request.get_json(force=True))
+        if notification.action == "opened":
+            "IT WORKS!!!!"
+            bot.sendMessage(update.chat_id, "New issue '{}' created.".format(notification.issue))
     return "200"
 
 @app.route('/')
 def index():
-    return 'Hola, soy consu valencia hehe'
+    return 'By Vicente Fuenzalida'
