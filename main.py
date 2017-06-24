@@ -30,8 +30,8 @@ class Telegram:
         # print(data)
 
 class Notification:
-    def __init__(self, data):
-        self.issue = Issue(data['issue'])
+    def __init__(self, data, git):
+        self.issue = Issue(data['issue'], git)
         self.repository = data['repository']
         self.action = data["action"]
         self.sender = data["sender"]
@@ -146,7 +146,7 @@ def webhook_handler():
 def git_webhook_handler():
     if request.method == "POST":
         print(json.dumps(request.get_json(force=True), indent=2))
-        notification = Notification(request.get_json(force=True))
+        notification = Notification(request.get_json(force=True), git)
         if notification.action == "opened":
             "IT WORKS!!!!"
             bot.sendMessage(update.chat_id, "New issue '{}' created.".format(notification.issue))
