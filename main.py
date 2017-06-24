@@ -1,5 +1,6 @@
 import re
 import os
+import json
 from flask import Flask, request
 import requests
 from github import Issue, Github, create_label
@@ -68,15 +69,16 @@ app = Flask(__name__)
 
 token = os.environ["TELEGRAM_TOKEN"]
 url = os.environ["HEROKU_URL"]
-hook = "botsito"
+hook_telegram = "botsito"
 
-bot = Telegram(token, url, hook)
+bot = Telegram(token, url, hook_telegram)
 
 address = "https://api.github.com"
 owner = os.environ["USERNAME"]
 repo = os.environ["REPOSITORY"]
+hook_git = "gitsito"
 
-git = Github(address, owner, repo)
+git = Github(address, url, owner, repo, hook_git)
 
 @app.route("/" + bot.hook, methods=['POST'])
 def webhook_handler():
@@ -124,6 +126,12 @@ def webhook_handler():
                 bot.sendMessage(update.chat_id, output)
         else:
             bot.sendMessage(update.chat_id, "You are very funny :) !")
+    return "200"
+
+@app.route("/" + git.hook, methods=['POST'])
+def git_webhook_handler():
+    if request.method == "POST":
+        print(json.dumps(request.get_json(force=True), indent=2))
     return "200"
 
 @app.route('/')

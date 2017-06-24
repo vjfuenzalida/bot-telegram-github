@@ -3,6 +3,45 @@ import os
 import json
 import re
 
+class Github:
+    def __init__(self, address, url, owner, repo, hook):
+        self.address = address
+        self.owner = owner
+        self.repo = repo
+        self.url = url
+        self.hook = hook
+        self.session = requests.Session()
+        self.session.auth = (os.environ["USERNAME"], os.environ["PASSWORD"])
+        self.issues = []
+        self.labels_url = self.address + "/repos/{}/{}/labels".format(self.owner, self.repo)
+        self.setWebhook()
+
+    def setWebhook(self):
+        webhook_url = self.address + "/repos/{}/{}/hooks".format(self.owner, self.repo)
+        config = {"url": self.url + self.hook, "content_type": "json"}
+        data = {"name": "web", "events": ["issues", "issue_comment"], "config": config}
+        self.session.post(url=webhook_url, data=data)
+
+    def issue_url(self,number):
+        return self.address + "/repos/{}/{}/issues/{}".format(self.owner, self.repo, number)
+
+    def get(self, url):
+        return self.session.get(url)
+
+    def post(self, url, json):
+        return self.session.post(url=url, json=json)
+
+    def patch(self, url, json):
+        return self.session.patch(url=url, json=json)
+
+    def get_issues(self):
+        if len(self.issues) == 0:
+            get_issues = "/repos/{}/{}/issues".format(self.owner, self.repo)
+            get_issues += "?{}={}".format("state","all")
+            data = self.get(url=self.address + get_issues)
+            self.issues = data.json()
+        return self.issues
+
 class Issue:
     all = []
     def __init__(self, json, git):
@@ -71,37 +110,6 @@ class Issue:
         text += " (by: " + self.author + ")\n"
         text += "description: " + self.body
         return text
-
-
-class Github:
-    def __init__(self, address, owner, repo):
-        self.address = address
-        self.owner = owner
-        self.repo = repo
-        self.session = requests.Session()
-        self.session.auth = (os.environ["USERNAME"], os.environ["PASSWORD"])
-        self.issues = []
-        self.labels_url = self.address + "/repos/{}/{}/labels".format(self.owner, self.repo)
-
-    def issue_url(self,number):
-        return self.address + "/repos/{}/{}/issues/{}".format(self.owner, self.repo, number)
-
-    def get(self, url):
-        return self.session.get(url)
-
-    def post(self, url, json):
-        return self.session.post(url=url, json=json)
-
-    def patch(self, url, json):
-        return self.session.patch(url=url, json=json)
-
-    def get_issues(self):
-        if len(self.issues) == 0:
-            get_issues = "/repos/{}/{}/issues".format(self.owner, self.repo)
-            get_issues += "?{}={}".format("state","all")
-            data = self.get(url=self.address + get_issues)
-            self.issues = data.json()
-        return self.issues
 
 def create_label(params):
     result = {}
