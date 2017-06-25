@@ -114,7 +114,7 @@ def git_webhook_handler():
                 for chat in db.session.query(Chat.chat_id).distinct():
                     bot.sendMessage(chat, "New issue '{}' created.".format(notification.issue))
             else:
-                for user in db.session.query(Chat.chat_id).distinct():
+                for chat in db.session.query(Chat.chat_id).distinct():
                     bot.sendMessage(chat, "Issue '{}' is {}.".format(notification.issue, action))
     return "200"
 
