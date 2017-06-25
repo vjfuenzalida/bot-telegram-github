@@ -97,7 +97,8 @@ def webhook_handler():
                 bot.sendMessage(update.chat_id, output)
         else:
             comms = "Try these commands: \n\n"
-            comms += "\n".join(list(map(lambda x, y: "{} {}".format(x,y), bot.commands.items())))
+            lines = ["{} {}".format(key, value) for key, value in bot.commands.items()]
+            comms += "\n".join(lines)
             bot.sendMessage(update.chat_id, comms)
     return "200"
 
@@ -105,11 +106,15 @@ def webhook_handler():
 def git_webhook_handler():
     if request.method == "POST":
         data = request.get_json(force=True)
-        print(json.dumps(data, indent=2))
+        # print(json.dumps(data, indent=2))
         notification = Notification(data, git)
-        if notification.action == "opened":
-            "IT WORKS!!!!"
-            bot.sendMessage(update.chat_id, "New issue '{}' created.".format(notification.issue))
+        action = notification.action
+        if action in ["opened", "reopened", "closed"]:
+            # print("IT WORKS!!!!")
+            if action == "opened":
+                bot.sendMessage(update.chat_id, "New issue '{}' created.".format(notification.issue))
+            else:
+                bot.sendMessage(update.chat_id, "Issue '{}' is {}.".format(notification.issue, action))
     return "200"
 
 @app.route('/')
