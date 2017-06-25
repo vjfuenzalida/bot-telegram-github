@@ -44,7 +44,6 @@ class Chat(db.Model):
     def __repr__(self):
         return '<Chat ID %r>' % str(self.chat_id)
 
-
 @app.route("/" + bot.hook, methods=['POST'])
 def webhook_handler():
     if request.method == "POST":
@@ -112,9 +111,11 @@ def git_webhook_handler():
         if action in ["opened", "reopened", "closed"]:
             # print("IT WORKS!!!!")
             if action == "opened":
-                bot.sendMessage(update.chat_id, "New issue '{}' created.".format(notification.issue))
+                for chat in db.session.query(Chat.chat_id).distinct():
+                    bot.sendMessage(chat, "New issue '{}' created.".format(notification.issue))
             else:
-                bot.sendMessage(update.chat_id, "Issue '{}' is {}.".format(notification.issue, action))
+                for user in db.session.query(Chat.chat_id).distinct():
+                    bot.sendMessage(chat, "Issue '{}' is {}.".format(notification.issue, action))
     return "200"
 
 @app.route('/')
