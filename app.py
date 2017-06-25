@@ -47,13 +47,16 @@ class Chat(db.Model):
 @app.route("/" + bot.hook, methods=['POST'])
 def webhook_handler():
     if request.method == "POST":
-        update = Update(request.get_json(force=True))
+        data = request.get_json(force=True)
+        if "zen" in data.keys():
+            return "200"
+        update = Update(data)
         chat_id = int(update.chat_id)
         if not db.session.query(Chat).filter(Chat.chat_id == chat_id).count():
             reg = Chat(chat_id)
             db.session.add(reg)
             db.session.commit()
-            print("id {} saved".format(chat_id))
+            # print("id {} saved".format(chat_id))
         command = update.get_command()
         if command:
             issue_url = git.issue_url(command.issue_id)
@@ -105,17 +108,18 @@ def webhook_handler():
 def git_webhook_handler():
     if request.method == "POST":
         data = request.get_json(force=True)
-        # print(json.dumps(data, indent=2))
+        if "zen" in data.keys():
+            return "200"
         notification = Notification(data, git)
         action = notification.action
         if action in ["opened", "reopened", "closed"]:
             # print("IT WORKS!!!!")
             if action == "opened":
                 for chat in db.session.query(Chat.chat_id).distinct():
-                    bot.sendMessage(chat, "New issue '{}' created.".format(notification.issue))
+                    bot.sendMessage(chat, "New issue '{}' created.".format(notification.issue.title))
             else:
                 for chat in db.session.query(Chat.chat_id).distinct():
-                    bot.sendMessage(chat, "Issue '{}' is {}.".format(notification.issue, action))
+                    bot.sendMessage(chat, "Issue '{}' is {}.".format(notification.issue.title, action))
     return "200"
 
 @app.route('/')

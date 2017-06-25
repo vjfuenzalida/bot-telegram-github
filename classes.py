@@ -142,7 +142,7 @@ class Telegram:
 
 class Notification:
     def __init__(self, data, git):
-        print(data.keys())
+        # print(data.keys())
         self.issue = Issue(data['issue'], git)
         self.repository = data['repository']
         self.action = data["action"]
